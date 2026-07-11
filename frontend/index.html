@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Inventory Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-card {
+            background: rgba(31, 41, 55, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <header class="glass sticky top-0 z-40 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-between p-2 shadow-lg shadow-blue-500/20">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Keyloop</span>
+                    <span class="text-xs block text-gray-400 font-semibold tracking-widest uppercase">Inventory Portal</span>
+                </div>
+            </div>
+            
+            <nav class="flex space-x-1" aria-label="Tabs">
+                <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md shadow-blue-600/10">
+                    Inventory Directory
+                </button>
+                <button onclick="switchTab('aging')" id="tab-btn-aging" class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800">
+                    Aging Stock Insights
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <!-- Dashboard Filters -->
+        <section class="glass-card rounded-2xl p-6 mb-8 shadow-xl">
+            <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center space-x-2">
+                <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
+                </svg>
+                <span>Filter Inventory</span>
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="filter-dealership" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Dealership</label>
+                    <select id="filter-dealership" onchange="loadData()" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
+                        <option value="">All Dealerships</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-make" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Make</label>
+                    <input type="text" id="filter-make" placeholder="e.g. Toyota" oninput="debounceLoad()" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="filter-model" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Model</label>
+                    <input type="text" id="filter-model" placeholder="e.g. Camry" oninput="debounceLoad()" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500">
+                </div>
+                <div id="status-filter-container">
+                    <label for="filter-status" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Status</label>
+                    <select id="filter-status" onchange="loadData()" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
+                        <option value="">All Statuses</option>
+                        <option value="in_stock">In Stock</option>
+                        <option value="sold">Sold</option>
+                        <option value="reserved">Reserved</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Inventory -->
+        <section id="view-inventory" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-white">Inventory Directory</h2>
+                    <p class="text-sm text-gray-400">Total fleet listing and dealership lookup</p>
+                </div>
+            </div>
+            
+            <!-- Table Card -->
+            <div class="glass-card rounded-2xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-800">
+                        <thead class="bg-gray-900/60">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">VIN</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Make / Model</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Year</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Price</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Intake Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Days in Stock</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Aging Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-gray-800 bg-transparent">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="bg-gray-900/40 px-6 py-4 flex items-center justify-between border-t border-gray-800" id="inventory-pagination">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Aging Stock (Actionable Insight View) -->
+        <section id="view-aging" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-red-950/40 to-orange-950/20 border border-red-900/30 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <h2 class="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
+                        <span class="h-3 w-3 rounded-full bg-red-500 animate-ping"></span>
+                        <span>Aging Stock Insights</span>
+                    </h2>
+                    <p class="text-sm text-red-300">Actionable insight screen listing in-stock vehicles stored for strictly greater than 90 days. Priorities require immediate promotions or price reductions.</p>
+                </div>
+                <div class="flex items-center space-x-2 bg-red-950/80 border border-red-900/50 px-4 py-2 rounded-xl text-red-400 text-sm font-semibold self-start md:self-auto">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Threshold: &gt;90 days</span>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="glass-card rounded-2xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-800">
+                        <thead class="bg-gray-900/60">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">VIN</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Make / Model</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Days in Stock</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Price</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Latest Action Plan</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aging-table-body" class="divide-y divide-gray-800 bg-transparent">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="bg-gray-900/40 px-6 py-4 flex items-center justify-between border-t border-gray-800" id="aging-pagination">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Side Drawer: Vehicle Details & History -->
+    <div id="drawer" class="fixed inset-0 overflow-hidden z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 overflow-hidden">
+            <!-- Overlay -->
+            <div onclick="closeDrawer()" class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
+
+            <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                <div class="pointer-events-auto w-screen max-w-lg">
+                    <div class="flex h-full flex-col overflow-y-scroll bg-gray-900 shadow-2xl border-l border-gray-800">
+                        <div class="flex-1 py-6 px-4 sm:px-6">
+                            <!-- Header -->
+                            <div class="flex items-start justify-between border-b border-gray-800 pb-5">
+                                <div>
+                                    <span id="drawer-vehicle-year" class="text-sm font-semibold text-blue-400"></span>
+                                    <h2 class="text-xl font-bold text-white" id="drawer-vehicle-title">Vehicle Detail</h2>
+                                    <p class="text-xs text-gray-400 mt-1" id="drawer-vehicle-vin"></p>
+                                </div>
+                                <div class="ml-3 flex h-7 items-center">
+                                    <button type="button" onclick="closeDrawer()" class="rounded-lg bg-gray-800 text-gray-400 hover:text-white p-2 border border-gray-700 transition duration-150">
+                                        <span class="sr-only">Close panel</span>
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Vehicle Details Card -->
+                            <div class="mt-6 bg-gray-950/50 border border-gray-850 rounded-xl p-4 grid grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-gray-500 block">Price</span>
+                                    <span id="drawer-vehicle-price" class="text-lg font-bold text-white"></span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-gray-500 block">Status</span>
+                                    <span id="drawer-vehicle-status" class="inline-block mt-0.5"></span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-gray-500 block">Days In Stock</span>
+                                    <span id="drawer-vehicle-days" class="text-sm font-semibold text-white"></span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-gray-500 block">Intake Date</span>
+                                    <span id="drawer-vehicle-intake" class="text-sm font-medium text-white"></span>
+                                </div>
+                            </div>
+
+                            <!-- Form: Log Action -->
+                            <div class="mt-6 border-t border-gray-800 pt-6">
+                                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Log Aging Action Plan</h3>
+                                
+                                <!-- Error Alert -->
+                                <div id="action-error" class="hidden bg-red-950/80 border border-red-900/60 rounded-xl p-4 mb-4 text-xs text-red-400">
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <span id="action-error-message"></span>
+                                    </div>
+                                </div>
+
+                                <form id="action-form" onsubmit="submitAction(event)" class="space-y-4">
+                                    <input type="hidden" id="action-vehicle-id">
+                                    <div>
+                                        <label for="action-type" class="block text-xs font-semibold text-gray-400 mb-1">Action Type *</label>
+                                        <select id="action-type" required class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
+                                            <option value="">Select Action Type</option>
+                                            <option value="price_reduction_planned">Price Reduction Planned</option>
+                                            <option value="promotion_planned">Promotion Planned</option>
+                                            <option value="transfer_planned">Transfer Planned</option>
+                                            <option value="no_action">No Action</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="action-created-by" class="block text-xs font-semibold text-gray-400 mb-1">Created By</label>
+                                        <input type="text" id="action-created-by" placeholder="e.g. Sales Manager" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="action-notes" class="block text-xs font-semibold text-gray-400 mb-1">Notes</label>
+                                        <textarea id="action-notes" rows="3" placeholder="Action details, thresholds, and target dates..." class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:border-blue-500"></textarea>
+                                    </div>
+                                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg py-2.5 text-sm font-semibold shadow-lg shadow-blue-500/10 hover:shadow-blue-500/25 transition duration-150">
+                                        Save Action Log
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Audit History Log -->
+                            <div class="mt-6 border-t border-gray-800 pt-6">
+                                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Action History Trail</h3>
+                                <div class="flow-root">
+                                    <ul role="list" id="drawer-history-list" class="-mb-8">
+                                        <!-- Populated dynamically -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-gray-800 bg-gray-950/20 py-6 text-center text-xs text-gray-500">
+        <p>&copy; 2026 Keyloop Inventory Portal. Dev Walkthrough Mode.</p>
+    </footer>
+
+    <script>
+        const API_BASE = "http://localhost:8000/api";
+        let activeTab = "inventory";
+        let debounceTimer;
+
+        // On Load
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDealerships();
+            loadData();
+        });
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const btnInv = document.getElementById("tab-btn-inventory");
+            const btnAge = document.getElementById("tab-btn-aging");
+            const viewInv = document.getElementById("view-inventory");
+            const viewAge = document.getElementById("view-aging");
+            const statusFilter = document.getElementById("status-filter-container");
+
+            if (tab === "inventory") {
+                btnInv.className = "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md shadow-blue-600/10";
+                btnAge.className = "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800";
+                viewInv.classList.remove("hidden");
+                viewAge.classList.add("hidden");
+                statusFilter.classList.remove("invisible");
+            } else {
+                btnInv.className = "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800";
+                btnAge.className = "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-red-600 text-white shadow-md shadow-red-600/10";
+                viewInv.classList.add("hidden");
+                viewAge.classList.remove("hidden");
+                statusFilter.classList.add("invisible"); // Status filter hidden since aging view is pre-filtered to in_stock
+            }
+            loadData();
+        }
+
+        async function loadDealerships() {
+            try {
+                const response = await fetch(`${API_BASE}/dealerships/`);
+                const dealerships = await response.json();
+                const select = document.getElementById("filter-dealership");
+                dealerships.forEach(d => {
+                    const opt = document.createElement("option");
+                    opt.value = d.id;
+                    opt.textContent = `${d.name} (${d.location})`;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Error loading dealerships:", err);
+            }
+        }
+
+        function debounceLoad() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(loadData, 300);
+        }
+
+        async function loadData(url = null) {
+            const dealership = document.getElementById("filter-dealership").value;
+            const make = document.getElementById("filter-make").value;
+            const model = document.getElementById("filter-model").value;
+            const status = document.getElementById("filter-status").value;
+
+            let queryUrl = url;
+            if (!queryUrl) {
+                const endpoint = activeTab === "inventory" ? "vehicles" : "vehicles/aging";
+                const params = new URLSearchParams();
+                if (dealership) params.append("dealership_id", dealership);
+                if (make) params.append("make", make);
+                if (model) params.append("model", model);
+                if (status && activeTab === "inventory") params.append("status", status);
+                queryUrl = `${API_BASE}/${endpoint}/?${params.toString()}`;
+            }
+
+            try {
+                const response = await fetch(queryUrl);
+                const data = await response.json();
+                if (activeTab === "inventory") {
+                    renderInventoryTable(data.results);
+                    renderPagination("inventory-pagination", data);
+                } else {
+                    renderAgingTable(data.results);
+                    renderPagination("aging-pagination", data);
+                }
+            } catch (err) {
+                console.error("Error loading fleet data:", err);
+            }
+        }
+
+        function renderInventoryTable(results) {
+            const tbody = document.getElementById("inventory-table-body");
+            tbody.innerHTML = "";
+            if (!results || results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-sm text-gray-500">No vehicles matching active filters.</td></tr>`;
+                return;
+            }
+
+            results.forEach(v => {
+                const statusBadge = getStatusBadge(v.status);
+                const agingBadge = v.is_aging 
+                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-950/60 text-red-400 border border-red-900/40">Aging</span>`
+                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-400">Healthy</span>`;
+                
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-gray-800/30 cursor-pointer transition duration-150";
+                tr.onclick = () => openDrawer(v.id);
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-400 font-mono">${v.vin}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">${v.make} ${v.model}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${v.year}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">$${Number(v.price).toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${v.intake_date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-semibold">${v.days_in_stock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${statusBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${agingBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderAgingTable(results) {
+            const tbody = document.getElementById("aging-table-body");
+            tbody.innerHTML = "";
+            if (!results || results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">No aging fleet currently.</td></tr>`;
+                return;
+            }
+
+            results.forEach(v => {
+                const latestActionText = v.latest_action 
+                    ? `<span class="font-semibold text-gray-200 block">${formatActionType(v.latest_action.action_type)}</span>
+                       <span class="text-xs text-gray-400 block max-w-xs truncate">${v.latest_action.notes || 'No notes'}</span>`
+                    : `<span class="text-gray-500 italic block">No Action Logged Yet</span>`;
+
+                const actionDate = v.latest_action 
+                    ? new Date(v.latest_action.created_at).toLocaleDateString()
+                    : "-";
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-gray-800/30 cursor-pointer transition duration-150";
+                tr.onclick = () => openDrawer(v.id);
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-400 font-mono">${v.vin}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">${v.make} ${v.model}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-400 font-bold bg-red-950/20 px-2 rounded-lg text-center inline-block mt-2">${v.days_in_stock} days</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">$${Number(v.price).toLocaleString()}</td>
+                    <td class="px-6 py-4 text-sm">${latestActionText}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${actionDate}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPagination(containerId, data) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+            
+            const nextUrl = data.next;
+            const prevUrl = data.previous;
+            const total = data.count || 0;
+
+            const text = document.createElement("span");
+            text.className = "text-xs text-gray-500 font-medium";
+            text.textContent = `Showing fleet results (Total: ${total})`;
+            container.appendChild(text);
+
+            if (nextUrl || prevUrl) {
+                const div = document.createElement("div");
+                div.className = "flex space-x-2";
+                
+                if (prevUrl) {
+                    const btn = document.createElement("button");
+                    btn.className = "px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition";
+                    btn.textContent = "Previous";
+                    btn.onclick = () => loadData(prevUrl);
+                    div.appendChild(btn);
+                }
+                if (nextUrl) {
+                    const btn = document.createElement("button");
+                    btn.className = "px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition";
+                    btn.textContent = "Next";
+                    btn.onclick = () => loadData(nextUrl);
+                    div.appendChild(btn);
+                }
+                container.appendChild(div);
+            }
+        }
+
+        async function openDrawer(vehicleId) {
+            document.getElementById("action-error").classList.add("hidden");
+            document.getElementById("action-form").reset();
+            
+            try {
+                const response = await fetch(`${API_BASE}/vehicles/${vehicleId}/`);
+                const v = await response.json();
+                
+                document.getElementById("action-vehicle-id").value = v.id;
+                document.getElementById("drawer-vehicle-year").textContent = v.year;
+                document.getElementById("drawer-vehicle-title").textContent = `${v.make} ${v.model}`;
+                document.getElementById("drawer-vehicle-vin").textContent = `VIN: ${v.vin}`;
+                document.getElementById("drawer-vehicle-price").textContent = `$${Number(v.price).toLocaleString()}`;
+                
+                const statusSpan = document.getElementById("drawer-vehicle-status");
+                statusSpan.outerHTML = `<span id="drawer-vehicle-status" class="inline-block mt-0.5">${getStatusBadge(v.status)}</span>`;
+
+                document.getElementById("drawer-vehicle-days").textContent = `${v.days_in_stock} days`;
+                document.getElementById("drawer-vehicle-intake").textContent = v.intake_date;
+
+                renderHistory(v.history);
+
+                document.getElementById("drawer").classList.remove("hidden");
+            } catch (err) {
+                console.error("Error loading vehicle details:", err);
+            }
+        }
+
+        function closeDrawer() {
+            document.getElementById("drawer").classList.add("hidden");
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById("drawer-history-list");
+            list.innerHTML = "";
+            if (!history || history.length === 0) {
+                list.innerHTML = `<li class="text-xs text-gray-500 italic py-2">No historical action records found.</li>`;
+                return;
+            }
+
+            history.forEach((act, idx) => {
+                const date = new Date(act.created_at).toLocaleString();
+                const isLast = idx === history.length - 1;
+                
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <div class="relative pb-8">
+                        ${!isLast ? '<span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-800" aria-hidden="true"></span>' : ''}
+                        <div class="relative flex space-x-3">
+                            <div>
+                                <span class="h-8 w-8 rounded-full bg-blue-900/60 border border-blue-800 flex items-center justify-center text-blue-400 font-bold text-xs uppercase shadow-sm">
+                                    ${act.action_type[0]}
+                                </span>
+                            </div>
+                            <div class="flex-grow min-w-0 pt-1.5 flex justify-between space-x-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-white">${formatActionType(act.action_type)}</p>
+                                    <p class="text-xs text-gray-400 mt-1">${act.notes || 'No plan notes'}</p>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">By: ${act.created_by || 'Anonymous'}</p>
+                                </div>
+                                <div class="text-right text-[10px] whitespace-nowrap text-gray-500">
+                                    <time datetime="${act.created_at}">${date}</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function submitAction(event) {
+            event.preventDefault();
+            const errorDiv = document.getElementById("action-error");
+            errorDiv.classList.add("hidden");
+
+            const vehicleId = document.getElementById("action-vehicle-id").value;
+            const actionType = document.getElementById("action-type").value;
+            const createdBy = document.getElementById("action-created-by").value;
+            const notes = document.getElementById("action-notes").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/vehicles/${vehicleId}/actions/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        action_type: actionType,
+                        created_by: createdBy,
+                        notes: notes
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Success: Reload vehicle detail drawer and list view
+                    openDrawer(vehicleId);
+                    loadData();
+                } else {
+                    // Error: Render API error
+                    let errMsg = "An error occurred while saving the action log.";
+                    if (data.non_field_errors) {
+                        errMsg = data.non_field_errors.join(" ");
+                    } else if (typeof data === "object") {
+                        errMsg = Object.entries(data).map(([key, val]) => `${key}: ${val}`).join("; ");
+                    }
+                    document.getElementById("action-error-message").textContent = errMsg;
+                    errorDiv.classList.remove("hidden");
+                }
+            } catch (err) {
+                console.error("Action submission error:", err);
+                document.getElementById("action-error-message").textContent = "Connection refused to backend API.";
+                errorDiv.classList.remove("hidden");
+            }
+        }
+
+        // Helpers
+        function getStatusBadge(status) {
+            switch (status) {
+                case "in_stock":
+                    return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-900/40">In Stock</span>`;
+                case "sold":
+                    return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-500 border border-gray-700/50">Sold</span>`;
+                case "reserved":
+                    return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950/60 text-amber-400 border border-amber-900/40">Reserved</span>`;
+                default:
+                    return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-300">${status}</span>`;
+            }
+        }
+
+        function formatActionType(type) {
+            return type
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+    </script>
+</body>
+</html>
