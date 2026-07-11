@@ -1,0 +1,316 @@
+openapi: 3.0.3
+info:
+  title: Intelligent Inventory Dashboard API
+  version: 1.0.0
+  description: API for managing dealership vehicle inventory and tracking aging actions.
+paths:
+  /api/dealerships/:
+    get:
+      summary: List all dealerships
+      description: Returns an unpaginated list of dealerships for dropdown filter population.
+      responses:
+        '200':
+          description: A list of dealerships.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dealership'
+  /api/vehicles/:
+    get:
+      summary: List all vehicles
+      description: Returns a paginated list of vehicles with computed days_in_stock and is_aging fields.
+      parameters:
+        - name: dealership_id
+          in: query
+          description: Filter by dealership ID.
+          required: false
+          schema:
+            type: integer
+        - name: make
+          in: query
+          description: Filter by vehicle make (case-insensitive).
+          required: false
+          schema:
+            type: string
+        - name: model
+          in: query
+          description: Filter by vehicle model (case-insensitive).
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by vehicle status.
+          required: false
+          schema:
+            type: string
+            enum: [in_stock, sold, reserved]
+        - name: min_age_days
+          in: query
+          description: Filter by minimum days in stock.
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list of vehicles.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vehicle'
+  /api/vehicles/aging/:
+    get:
+      summary: List aging vehicles
+      description: Returns a paginated list of vehicles pre-filtered to is_aging=true, sorted by days_in_stock desc.
+      parameters:
+        - name: dealership_id
+          in: query
+          description: Filter by dealership ID.
+          required: false
+          schema:
+            type: integer
+        - name: make
+          in: query
+          description: Filter by vehicle make (case-insensitive).
+          required: false
+          schema:
+            type: string
+        - name: model
+          in: query
+          description: Filter by vehicle model (case-insensitive).
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by vehicle status.
+          required: false
+          schema:
+            type: string
+            enum: [in_stock, sold, reserved]
+        - name: min_age_days
+          in: query
+          description: Filter by minimum days in stock.
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list of aging vehicles.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vehicle'
+  /api/vehicles/{id}/:
+    get:
+      summary: Get vehicle detail
+      description: Returns single vehicle detail and full chronological history of aging actions.
+      parameters:
+        - name: id
+          in: path
+          description: ID of the vehicle to fetch.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vehicle detail with history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDetail'
+        '404':
+          description: Vehicle not found.
+        '405':
+          description: Method not allowed. (PUT/PATCH/DELETE are rejected).
+  /api/vehicles/{id}/actions/:
+    post:
+      summary: Log an aging action
+      description: Logs an aging action for a specific vehicle. Rejects logs on non-in_stock vehicles.
+      parameters:
+        - name: id
+          in: path
+          description: ID of the vehicle.
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgingActionCreate'
+      responses:
+        '201':
+          description: Aging action created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgingAction'
+        '400':
+          description: Bad request (invalid data, invalid action_type, or vehicle status is not in_stock).
+        '404':
+          description: Vehicle not found.
+components:
+  schemas:
+    Dealership:
+      type: object
+      required:
+        - id
+        - name
+        - location
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        location:
+          type: string
+          maxLength: 255
+    Vehicle:
+      type: object
+      required:
+        - id
+        - vin
+        - make
+        - model
+        - year
+        - intake_date
+        - price
+        - status
+        - days_in_stock
+        - is_aging
+        - latest_action
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        vin:
+          type: string
+          maxLength: 17
+        make:
+          type: string
+          maxLength: 255
+        model:
+          type: string
+          maxLength: 255
+        year:
+          type: integer
+          minimum: 0
+        intake_date:
+          type: string
+          format: date
+        price:
+          type: string
+          format: decimal
+        status:
+          type: string
+          enum: [in_stock, sold, reserved]
+        days_in_stock:
+          type: integer
+          readOnly: true
+        is_aging:
+          type: boolean
+          readOnly: true
+        latest_action:
+          $ref: '#/components/schemas/LatestAction'
+          nullable: true
+    LatestAction:
+      type: object
+      required:
+        - action_type
+        - notes
+        - created_at
+      properties:
+        action_type:
+          type: string
+          enum: [price_reduction_planned, promotion_planned, transfer_planned, no_action]
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    AgingAction:
+      type: object
+      required:
+        - id
+        - action_type
+        - notes
+        - created_by
+        - created_at
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        action_type:
+          type: string
+          enum: [price_reduction_planned, promotion_planned, transfer_planned, no_action]
+        notes:
+          type: string
+          nullable: true
+        created_by:
+          type: string
+          maxLength: 255
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    VehicleDetail:
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          required:
+            - history
+          properties:
+            history:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgingAction'
+    AgingActionCreate:
+      type: object
+      required:
+        - action_type
+      properties:
+        action_type:
+          type: string
+          enum: [price_reduction_planned, promotion_planned, transfer_planned, no_action]
+        notes:
+          type: string
+          nullable: true
+        created_by:
+          type: string
+          maxLength: 255
+          nullable: true
