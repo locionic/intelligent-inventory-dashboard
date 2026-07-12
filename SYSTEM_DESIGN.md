@@ -108,6 +108,18 @@ flowchart LR
    status" more defensibly than mutation-in-place.
 4. No authentication/authorization layer is in scope; `created_by` is a
    free-text field. Noted as a production gap, not implemented.
+5. "Real-time" (per spec.md's task description) is interpreted as
+   `days_in_stock`/`is_aging` being computed fresh on every request
+   (via DB-level `annotate()`), not cached or batch-updated — not as
+   a requirement for live push/WebSocket updates between concurrent
+   users, which spec.md's core requirements don't call for.
+6. A single global `TIME_ZONE` (`Asia/Ho_Chi_Minh`) is used to compute
+   "today" for the aging calculation, matching the assumed single-region
+   deployment for this assessment. A production system serving
+   dealerships across multiple timezones would need a `timezone` field
+   on `Dealership` and per-dealership "today" computation instead of a
+   server-global setting — noted as a scope boundary, not implemented
+   here, since spec.md does not describe a multi-region deployment.
 
 ## GenAI Use in the Design Phase
 
