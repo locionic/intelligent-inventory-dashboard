@@ -4,12 +4,19 @@ This project implements the backend API layer for the Intelligent Inventory Dash
 
 ---
 
+## Prerequisites
+
+- **Python 3.10 or higher** (tested on 3.11). Django 5.x requires Python ≥3.10;
+  installing on an older Python will fail at the `pip install` step with a
+  version resolution error.
+
 ## Setup Instructions
 
 These instructions assume a fresh clone of the repository.
 
 ### 1. Set Up the Virtual Environment and Install Dependencies
 ```bash
+python3 --version    # confirm 3.10+
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
